@@ -3,3 +3,7 @@
 /prc/node_modules/
 /server/node_modules/
 /server/www/
+/server/VideoMedia/
+/server/ImageMedia/
+/server/access.log
+/server/architecture.txt
