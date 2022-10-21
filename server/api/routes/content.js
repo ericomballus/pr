@@ -6,21 +6,33 @@ let io = require("socket.io");
 let saveVideo = require("../../utils/saveVideo");
 const path = require("path");
 const fs = require("fs");
-router.post("/", saveVideo, async (req, res, next) => {
-  console.log(req.body);
-  try {
-    const doc = new ContentModel(req.body);
-    const v = await doc.save();
-    req.io.sockets.emit(`content`, v);
+router.post(
+  "/",
+  require("../../utils/verifyToken"),
+  saveVideo,
+  async (req, res, next) => {
+    console.log(req.body);
+    try {
+      const doc = new ContentModel(req.body);
+      const v = await doc.save();
+      req.io.sockets.emit(`content`, v);
 
-    res.status(200).json(v);
-  } catch (error) {
-    res.status(500).json(error);
+      res.status(200).json(v);
+    } catch (error) {
+      res.status(500).json(error);
+    }
   }
-});
+);
 
 router.get("/", async (req, res, next) => {
   try {
+    let docs = await ContentModel.find({}, "-__v")
+      .sort({ _id: -1 })
+      .populate("authorId")
+      .lean()
+      .exec();
+    const count = await ContentModel.countDocuments();
+    res.status(200).json(docs);
   } catch (error) {
     res.status(500).json(error);
   }
@@ -32,26 +44,28 @@ router.get("/:id", (req, res, next) => {
   let imagePath;
   let videoPath;
   let contentId = req.params.id;
+  console.log(contentId);
   ContentModel.findById(contentId, (err, content) => {
     console.log(content);
     if (!err && content) {
-      if (content.imageUrl) {
+      if (content.imageUrl == "null" || content.imageUrl == null) {
+        // imagePath = path.join(UPLOAD_PATH_IMAGES, content.imageUrl);
+      } else {
         imagePath = path.join(UPLOAD_PATH_IMAGES, content.imageUrl);
+        fs.access(imagePath, fs.F_OK, (e) => {
+          if (e) {
+            res.status(400).json({
+              error: "image inexistante",
+            });
+            return;
+          }
+          res.setHeader("Content-Type", "image/jpeg");
+
+          fs.createReadStream(
+            path.join(UPLOAD_PATH_IMAGES, content.imageUrl)
+          ).pipe(res);
+        });
       }
-
-      fs.access(imagePath, fs.F_OK, (e) => {
-        if (e) {
-          res.status(400).json({
-            error: "image inexistante",
-          });
-          return;
-        }
-        res.setHeader("Content-Type", "image/jpeg");
-
-        fs.createReadStream(
-          path.join(UPLOAD_PATH_IMAGES, content.imageUrl)
-        ).pipe(res);
-      });
     } else {
       res.status(400).json(err);
     }
@@ -65,7 +79,7 @@ router.get("/video/:id", (req, res, next) => {
   ContentModel.findById(contentId, (err, content) => {
     console.log(content);
     if (!err && content) {
-      if (content.imageUrl) {
+      if (content.videoUrl) {
         videoPath = path.join(UPLOAD_PATH_VIDEO, content.videoUrl);
       }
 

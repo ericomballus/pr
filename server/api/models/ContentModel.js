@@ -18,14 +18,14 @@ const ContentSchema = new Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     default: null,
-    //  required: true,
+    required: true,
   },
 
   rubriqueId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Rubrique",
     default: null,
-    // required: true,
+    //required: true,
   },
 });
 module.exports = mongoose.model("Content", ContentSchema);

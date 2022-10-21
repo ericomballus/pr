@@ -10,6 +10,7 @@ module.exports = (req, res, next) => {
   });
 
   form.on("field", function (field, value) {
+    console.log(field, "====>", value);
     req.body[field] = value;
   });
 
